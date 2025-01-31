@@ -32,9 +32,24 @@ app.use('/api/users', userRoutes);
 app.use('/api/files', fileRoutes);
 
 // Connect to database
-await connectDB();
+try {
+  await connectDB();
+  console.log('Database connected successfully');
+  
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+} catch (error) {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+}
 
+// Environment variable checks
 console.log('Environment Variables:', {
+  NODE_ENV: process.env.NODE_ENV,
+  MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not Set',
+  JWT_SECRET: process.env.JWT_SECRET ? 'Set' : 'Not Set',
   PUSHER_APP_ID: process.env.PUSHER_APP_ID ? 'Set' : 'Not Set',
   PUSHER_KEY: process.env.PUSHER_KEY ? 'Set' : 'Not Set',
   PUSHER_SECRET: process.env.PUSHER_SECRET ? 'Set' : 'Not Set',
@@ -54,10 +69,5 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.join(frontendBuildPath, 'index.html'));
     });
 }
-
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
 
 export default app;
