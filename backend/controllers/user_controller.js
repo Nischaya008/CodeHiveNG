@@ -4,7 +4,16 @@ import jwt from 'jsonwebtoken';
 
 export const signup = async (req, res) => {
   try {
+    console.log('Signup request received:', req.body);
+    
     const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+      return res.status(400).json({ 
+        message: "Missing required fields",
+        received: { username: !!username, email: !!email, password: !!password }
+      });
+    }
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -37,19 +46,32 @@ export const signup = async (req, res) => {
       token 
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Signup error details:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
+    
     res.status(500).json({ 
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: "Server error during signup",
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
 
 export const signin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { emailOrUsername, password } = req.body;
     
-    const user = await User.findOne({ email });
+    // Find user by either email or username
+    const user = await User.findOne({
+      $or: [
+        { email: emailOrUsername },
+        { username: emailOrUsername }
+      ]
+    });
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
