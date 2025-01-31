@@ -58,9 +58,6 @@ const LandingPage = () => {
   });
   const navigate = useNavigate();
   
-  // Add base URL for axios
-  axios.defaults.baseURL = 'http://localhost:5000';
-  
   const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
