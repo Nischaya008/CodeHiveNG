@@ -13,7 +13,7 @@ import './styles/shared.css';
 
 const SignIn = ({ open, onClose }) => {
   const [formData, setFormData] = useState({
-    email: '',
+    emailOrUsername: '',
     password: ''
   });
   const [error, setError] = useState('');
@@ -48,13 +48,19 @@ const SignIn = ({ open, onClose }) => {
         <TextField
           autoFocus
           className="dialog-input"
-          name="email"
-          label="Email Address"
-          type="email"
+          name="emailOrUsername"
+          label="Email or Username"
+          type="text"
           fullWidth
           variant="outlined"
-          value={formData.email}
+          value={formData.emailOrUsername}
           onChange={handleChange}
+          sx={{
+            '& .MuiInputBase-input:-webkit-autofill': {
+              '-webkit-box-shadow': '0 0 0 100px rgba(15, 15, 26, 0.95) inset',
+              '-webkit-text-fill-color': '#fff'
+            }
+          }}
         />
         <TextField
           className="dialog-input"
@@ -65,6 +71,12 @@ const SignIn = ({ open, onClose }) => {
           variant="outlined"
           value={formData.password}
           onChange={handleChange}
+          sx={{
+            '& .MuiInputBase-input:-webkit-autofill': {
+              '-webkit-box-shadow': '0 0 0 100px rgba(15, 15, 26, 0.95) inset',
+              '-webkit-text-fill-color': '#fff'
+            }
+          }}
         />
       </DialogContent>
       <DialogActions>
