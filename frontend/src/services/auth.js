@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/users';
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://codehiveng.vercel.app/api/users'
+  : 'http://localhost:5000/api/users';
 
 export const signup = async (userData) => {
   try {
