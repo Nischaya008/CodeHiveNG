@@ -18,6 +18,10 @@ import axios from 'axios';
 import Pusher from 'pusher-js';
 import Particles from './styles/particles.jsx';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://codehiveng.vercel.app'
+  : 'http://localhost:5000';
+
 const Chat = ({ roomId }) => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -63,7 +67,7 @@ const Chat = ({ roomId }) => {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/rooms/${roomId}/messages`, {
+      const response = await axios.get(`${API_URL}/api/rooms/${roomId}/messages`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`
         }
@@ -85,7 +89,7 @@ const Chat = ({ roomId }) => {
     if (!newMessage.trim()) return;
 
     try {
-      await axios.post(`http://localhost:5000/api/rooms/${roomId}/messages`, {
+      await axios.post(`${API_URL}/api/rooms/${roomId}/messages`, {
         content: newMessage,
         userId: currentUser.user.id
       }, {
