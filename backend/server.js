@@ -18,13 +18,12 @@ app.use(express.json());
 
 // Move CORS configuration here, before routes
 app.use(cors({
-  origin: [
-    'https://codehiveng.vercel.app',
-    'http://localhost:3000'
-  ],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://codehiveng.vercel.app']
+    : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
 }));
 
 // Routes
