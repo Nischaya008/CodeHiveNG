@@ -1,0 +1,107 @@
+.dialog-paper {
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%) !important;
+  color: #fff !important;
+  border: 1px solid rgba(0, 255, 149, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.dialog-title {
+  color: #00ff95 !important;
+  text-align: center;
+  font-size: 1.8rem !important;
+  border-bottom: 1px solid rgba(0, 255, 149, 0.2);
+}
+
+.dialog-input {
+  margin: 1rem 0 !important;
+}
+
+.dialog-input .MuiOutlinedInput-root {
+  color: #fff;
+}
+
+.dialog-input .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 255, 149, 0.3) !important;
+}
+
+.dialog-input:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 255, 149, 0.5) !important;
+}
+
+.dialog-input.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #00ff95 !important;
+}
+
+.dialog-input .MuiInputLabel-root {
+  color: rgba(0, 255, 149, 0.7) !important;
+}
+
+.dialog-button {
+  background: rgba(0, 255, 149, 0.1) !important;
+  border: 1px solid rgba(0, 255, 149, 0.5) !important;
+  color: #00ff95 !important;
+  transition: all 0.3s ease !important;
+}
+
+.dialog-button:hover {
+  background: rgba(0, 255, 149, 0.2) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 255, 149, 0.2) !important;
+}
+
+.room-card {
+  background: rgba(15, 15, 26, 0.8) !important;
+  border: 1px solid rgba(0, 255, 149, 0.2) !important;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 255, 149, 0.1) !important;
+}
+
+.room-title {
+  color: #00ff95 !important;
+  border-bottom: 1px solid rgba(0, 255, 149, 0.2);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem !important;
+}
+
+.room-input {
+  margin: 1rem 0 !important;
+}
+
+.room-input .MuiOutlinedInput-root {
+  color: #00ff95 !important;
+}
+
+.room-input .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 255, 149, 0.3) !important;
+}
+
+.room-input:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(0, 255, 149, 0.5) !important;
+}
+
+.room-input.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #00ff95 !important;
+}
+
+.room-input .MuiInputLabel-root {
+  color: rgba(0, 255, 149, 0.7) !important;
+}
+
+.room-list-item {
+  border-bottom: 1px solid rgba(0, 255, 149, 0.1) !important;
+  padding: 1rem !important;
+}
+
+.room-list-item:last-child {
+  border-bottom: none !important;
+}
+
+.room-list-item .MuiListItemText-primary {
+  color: #00ff95 !important;
+  font-size: 1.1rem !important;
+}

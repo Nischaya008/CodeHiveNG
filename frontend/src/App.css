@@ -1,0 +1,312 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
+
+.code-editor-container {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  position: relative;
+  padding-top: 64px;
+  overflow: hidden;
+}
+
+/* Add this for the particle effect background */
+.code-editor-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 255, 149, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Update scrollbar styling globally */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 149, 0.2);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 149, 0.3);
+}
+
+/* Update editor content styling */
+.editor-content {
+  flex: 1;
+  padding: 20px 20px 20px 0;
+  margin-left: 200px;
+  margin-right: 0;
+  max-width: calc(100% - 200px);
+  height: calc(100vh - 84px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  gap: 12px;
+  padding-right: 8px;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling */
+.editor-content::-webkit-scrollbar {
+  width: 8px;
+  position: absolute;
+  right: 0;
+}
+
+.editor-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.editor-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 149, 0.2);
+  border-radius: 4px;
+}
+
+.editor-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 149, 0.3);
+}
+
+.editor-header {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.language-select {
+  min-width: 150px;
+  background: rgba(0, 255, 149, 0.1);
+  border: 1px solid rgba(0, 255, 149, 0.3);
+  color: #00ff95 !important;
+}
+
+.language-select .MuiSelect-select {
+  color: #00ff95;
+}
+
+.run-button {
+  background: rgba(0, 255, 149, 0.1) !important;
+  border: 1px solid rgba(0, 255, 149, 0.3) !important;
+  color: #00ff95 !important;
+  padding: 8px 24px !important;
+  transition: all 0.3s ease !important;
+}
+
+.run-button:hover {
+  background: rgba(0, 255, 149, 0.2) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 255, 149, 0.15) !important;
+}
+
+.run-button:disabled {
+  opacity: 0.5 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Update editor wrapper with glowing effect */
+.editor-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  border: 1px solid rgba(0, 255, 149, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 255, 149, 0.05);
+  transition: all 0.3s ease;
+  height: 60vh;
+  min-height: 400px;
+  margin-bottom: 20px;
+}
+
+.editor-wrapper:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 149, 0.1);
+  border-color: rgba(0, 255, 149, 0.3);
+}
+
+/* Update output container styling */
+.output-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 10px auto;
+  padding: 15px 20px;
+  background: rgba(15, 15, 26, 0.95);
+  border: 1px solid rgba(0, 255, 149, 0.2);
+  border-radius: 8px;
+  color: #00ff95;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(0, 255, 149, 0.05);
+  box-sizing: border-box;
+}
+
+.output-container:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 149, 0.1);
+  border-color: rgba(0, 255, 149, 0.3);
+}
+
+.output-container h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #00ff95;
+}
+
+.output-container pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: rgba(0, 255, 149, 0.8);
+  font-family: 'Consolas', monospace;
+}
+
+/* Update sidebar styling */
+.sidebar {
+  width: 240px;
+  height: calc(100vh - 64px);
+  position: fixed;
+  left: 0;
+  top: 64px;
+  background: rgba(15, 15, 26, 0.95);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(0, 255, 149, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 255, 149, 0.05);
+}
+
+/* Add responsive styles */
+@media (max-width: 768px) {
+  .editor-content {
+    margin-left: 0;
+    margin-right: 50px;
+    padding: 16px;
+    max-width: calc(100% - 50px);
+  }
+  
+  .code-editor-container {
+    padding-top: 128px; /* Increased for mobile header */
+  }
+  
+  .sidebar {
+    top: 128px; /* Adjust for mobile header */
+    height: calc(100vh - 128px);
+  }
+  
+  .editor-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .language-select {
+    width: 100%;
+  }
+  
+  .output-container {
+    width: calc(100% - 32px);
+  }
+}
+
+/* Add these new styles */
+.MuiSelect-select {
+  padding-right: 32px !important;
+}
+
+.MuiPaper-root::-webkit-scrollbar {
+  width: 8px;
+}
+
+.MuiPaper-root::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.MuiPaper-root::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 149, 0.2);
+  border-radius: 4px;
+}
+
+.MuiPaper-root::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 149, 0.3);
+}
+
+.floating-message {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  animation: slideIn 0.5s ease-out, fadeOut 0.5s ease-in 4.5s;
+  background: rgba(15, 15, 26, 0.98);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 255, 149, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transform-origin: bottom right;
+}
+
+.floating-message-content {
+  color: #00ff95;
+}
+
+.floating-message-content strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.floating-message-content p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
