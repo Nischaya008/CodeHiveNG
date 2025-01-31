@@ -37,7 +37,11 @@ export const signup = async (req, res) => {
       token 
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Signup error:', error);
+    res.status(500).json({ 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
