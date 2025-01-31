@@ -16,6 +16,10 @@ import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import Particles from './styles/particles.jsx';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://codehiveng.vercel.app'
+  : 'http://localhost:5000';
+
 const Sidebar = ({ roomId }) => {
   const [users, setUsers] = useState([]);
   const navigate = useNavigate();
@@ -23,7 +27,7 @@ const Sidebar = ({ roomId }) => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/rooms/${roomId}/users`, {
+      const response = await axios.get(`${API_URL}/api/rooms/${roomId}/users`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`
         }
@@ -61,7 +65,7 @@ const Sidebar = ({ roomId }) => {
     
     const joinRoom = async () => {
       try {
-        await axios.post(`http://localhost:5000/api/rooms/${roomId}/join`, {}, {
+        await axios.post(`${API_URL}/api/rooms/${roomId}/join`, {}, {
           headers: {
             Authorization: `Bearer ${currentUser.token}`
           }
@@ -89,7 +93,7 @@ const Sidebar = ({ roomId }) => {
       clearInterval(interval);
       // Only leave room if we're actually navigating away (not refreshing)
       if (document.visibilityState === 'hidden') {
-        axios.post(`http://localhost:5000/api/rooms/${roomId}/leave`, {}, {
+        axios.post(`${API_URL}/api/rooms/${roomId}/leave`, {}, {
           headers: {
             Authorization: `Bearer ${currentUser.token}`
           }
@@ -115,7 +119,7 @@ const Sidebar = ({ roomId }) => {
 
   const leaveRoom = async () => {
     try {
-      await axios.post(`http://localhost:5000/api/rooms/${roomId}/leave`, {}, {
+      await axios.post(`${API_URL}/api/rooms/${roomId}/leave`, {}, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`
         }
