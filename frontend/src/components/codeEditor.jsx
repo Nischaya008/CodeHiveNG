@@ -67,10 +67,8 @@ const CodeEditor = () => {
   }, [roomId]);
 
   useEffect(() => {
-    // Only load boilerplate if there's no existing code
-    if (!code || code === '') {
-      setCode(BOILERPLATE_CODE[language]);
-    }
+    // Load boilerplate when language changes
+    setCode(BOILERPLATE_CODE[language]);
   }, [language]);
 
   useEffect(() => {
@@ -233,6 +231,7 @@ const CodeEditor = () => {
   const handleLanguageChange = (event) => {
     const newLanguage = event.target.value;
     setLanguage(newLanguage);
+    setCode(BOILERPLATE_CODE[newLanguage]);
     broadcastLanguageUpdate(newLanguage);
   };
 
