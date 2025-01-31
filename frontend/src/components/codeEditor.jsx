@@ -301,10 +301,12 @@ const CodeEditor = () => {
   };
 
   const handleFileSelect = (file) => {
-    // Set code first to prevent the boilerplate from loading
-    setCode(file.content);
     setLanguage(file.language);
-    broadcastFileSelection(file);
+    // Add a small delay to ensure language is set before setting code
+    setTimeout(() => {
+      setCode(file.content);
+      broadcastFileSelection(file);
+    }, 50);
   };
 
   const handleInputChange = (e) => {
@@ -439,6 +441,10 @@ const CodeEditor = () => {
         autoHideDuration={3000}
         onClose={handleCloseToast}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          zIndex: 9999,
+          marginTop: '80px' // Add space below the header
+        }}
       >
         <MuiAlert
           elevation={6}
