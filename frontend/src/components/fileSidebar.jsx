@@ -19,6 +19,10 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import axios from 'axios';
 import Particles from './styles/particles.jsx';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://codehiveng.vercel.app'
+  : 'http://localhost:5000';
+
 const FileSidebar = ({ roomId, onFileSelect, currentLanguage }) => {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState([]);
@@ -27,7 +31,7 @@ const FileSidebar = ({ roomId, onFileSelect, currentLanguage }) => {
 
   const fetchFiles = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/files/room/${roomId}`, {
+      const response = await axios.get(`${API_URL}/api/files/room/${roomId}`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`
         }
@@ -48,7 +52,7 @@ const FileSidebar = ({ roomId, onFileSelect, currentLanguage }) => {
 
   const handleDelete = async (fileId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/files/${fileId}`, {
+      await axios.delete(`${API_URL}/api/files/${fileId}`, {
         headers: {
           Authorization: `Bearer ${currentUser.token}`
         }
