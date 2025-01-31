@@ -17,6 +17,10 @@ import MuiAlert from '@mui/material/Alert';
 import Chat from './chat.jsx';
 import BrandHeader from './styles/brandheader.jsx';
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://codehiveng.vercel.app'
+  : 'http://localhost:5000';
+
 const CodeEditor = () => {
   const { roomId } = useParams();
   const [code, setCode] = useState(BOILERPLATE_CODE['javascript']);
@@ -48,7 +52,7 @@ const CodeEditor = () => {
     const fetchRoomDetails = async () => {
       try {
         const userData = JSON.parse(localStorage.getItem('user'));
-        const response = await axios.get(`http://localhost:5000/api/rooms/${roomId}/details`, {
+        const response = await axios.get(`${API_URL}/api/rooms/${roomId}/details`, {
           headers: {
             Authorization: `Bearer ${userData.token}`
           }
@@ -128,7 +132,7 @@ const CodeEditor = () => {
         token: userData.token ? 'Present' : 'Missing'
       });
 
-      const response = await axios.post(`http://localhost:5000/api/rooms/${roomId}/code`, {
+      const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
         userId: userData.user.id
       }, {
@@ -161,7 +165,7 @@ const CodeEditor = () => {
         return;
       }
 
-      await axios.post(`http://localhost:5000/api/rooms/${roomId}/language`, {
+      await axios.post(`${API_URL}/api/rooms/${roomId}/language`, {
         language: newLanguage,
         userId: userData.user.id
       }, {
@@ -183,7 +187,7 @@ const CodeEditor = () => {
         return;
       }
 
-      await axios.post(`http://localhost:5000/api/rooms/${roomId}/terminals`, {
+      await axios.post(`${API_URL}/api/rooms/${roomId}/terminals`, {
         input: newInput,
         output: newOutput,
         isLoading: loadingState,
@@ -207,7 +211,7 @@ const CodeEditor = () => {
         return;
       }
 
-      await axios.post(`http://localhost:5000/api/rooms/${roomId}/file-selection`, {
+      await axios.post(`${API_URL}/api/rooms/${roomId}/file-selection`, {
         file,
         userId: userData.user.id
       }, {
@@ -280,7 +284,7 @@ const CodeEditor = () => {
     
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
-      await axios.post('http://localhost:5000/api/files', {
+      await axios.post(`${API_URL}/api/files`, {
         name: `${fileName}.${FILE_EXTENSIONS[language]}`,
         content: code,
         language,
