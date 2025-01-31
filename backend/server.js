@@ -16,6 +16,16 @@ const app = express();
 // Middleware
 app.use(express.json());
 
+// Move CORS configuration here, before routes
+app.use(cors({
+  origin: [
+    'https://codehiveng.vercel.app',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use('/api/rooms', roomRoutes);
@@ -34,16 +44,6 @@ console.log('Environment Variables:', {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-app.use(cors({
-  origin: [
-      'https://codehiveng.vercel.app',
-      'http://localhost:3000'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 // Serve static files from the React frontend app
 if (process.env.NODE_ENV === 'production') {
