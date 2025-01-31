@@ -1,12 +1,8 @@
 import axios from 'axios';
 
-const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api/users'
-  : '/api/users';
-
 export const signup = async (userData) => {
   try {
-    const response = await axios.post(`${API_URL}/signup`, userData);
+    const response = await axios.post('/api/users/signup', userData);
     if (response.data.token) {
       localStorage.setItem('user', JSON.stringify(response.data));
     }
@@ -18,7 +14,7 @@ export const signup = async (userData) => {
 
 export const signin = async (credentials) => {
   try {
-    const response = await axios.post(`${API_URL}/signin`, credentials);
+    const response = await axios.post('/api/users/signin', credentials);
     if (response.data.token) {
       localStorage.setItem('user', JSON.stringify(response.data));
     }
