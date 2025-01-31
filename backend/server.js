@@ -31,6 +31,13 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/files', fileRoutes);
 
+// After routes
+console.log('Available routes:', {
+  users: app._router.stack
+    .filter(r => r.route)
+    .map(r => ({ path: r.route.path, methods: Object.keys(r.route.methods) }))
+});
+
 // Connect to database
 try {
   await connectDB();
