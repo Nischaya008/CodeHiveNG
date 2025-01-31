@@ -56,6 +56,12 @@ const SignUp = ({ open, onClose }) => {
           variant="outlined"
           value={formData.username}
           onChange={handleChange}
+          sx={{
+            '& .MuiInputBase-input:-webkit-autofill': {
+              '-webkit-box-shadow': '0 0 0 100px rgba(15, 15, 26, 0.95) inset',
+              '-webkit-text-fill-color': '#fff'
+            }
+          }}
         />
         <TextField
           className="dialog-input"
@@ -66,6 +72,12 @@ const SignUp = ({ open, onClose }) => {
           variant="outlined"
           value={formData.email}
           onChange={handleChange}
+          sx={{
+            '& .MuiInputBase-input:-webkit-autofill': {
+              '-webkit-box-shadow': '0 0 0 100px rgba(15, 15, 26, 0.95) inset',
+              '-webkit-text-fill-color': '#fff'
+            }
+          }}
         />
         <TextField
           className="dialog-input"
@@ -76,6 +88,12 @@ const SignUp = ({ open, onClose }) => {
           variant="outlined"
           value={formData.password}
           onChange={handleChange}
+          sx={{
+            '& .MuiInputBase-input:-webkit-autofill': {
+              '-webkit-box-shadow': '0 0 0 100px rgba(15, 15, 26, 0.95) inset',
+              '-webkit-text-fill-color': '#fff'
+            }
+          }}
         />
       </DialogContent>
       <DialogActions>
