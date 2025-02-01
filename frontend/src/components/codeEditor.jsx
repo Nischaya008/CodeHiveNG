@@ -124,15 +124,11 @@ const CodeEditor = () => {
         return;
       }
 
-      console.log('Broadcasting code update...', {
-        roomId,
-        codeLength: newCode.length,
-        token: userData.token ? 'Present' : 'Missing'
-      });
-
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id
+        userId: userData.user.id,
+        // Add timestamp to ensure proper ordering of updates
+        timestamp: Date.now()
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -141,17 +137,10 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
-        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
-      
-      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', {
-        message: error.response?.data?.message || error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
+      console.error('Error broadcasting code:', error);
     }
   }, 200);
 
@@ -347,7 +336,18 @@ const CodeEditor = () => {
               automaticLayout: true,
               formatOnType: true,
               formatOnPaste: true,
-              autoIndent: 'full'
+              autoIndent: 'full',
+              renderValidationDecorations: 'off',
+              renderWhitespace: 'none',
+              readOnly: false,
+              cursorStyle: 'line',
+              cursorBlinking: 'blink',
+              renderOverviewRuler: false,
+              occurrencesHighlight: false,
+              bracketPairColorization: {
+                enabled: true,
+                independentColorPoolPerBracketType: true,
+              }
             }}
           />
         </Box>
@@ -443,7 +443,8 @@ const CodeEditor = () => {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
           zIndex: 9999,
-          marginTop: '80px' // Add space below the header
+          marginTop: '80px',
+          marginRight: '10px'
         }}
       >
         <MuiAlert
