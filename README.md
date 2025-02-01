@@ -150,7 +150,7 @@ CodeHiveNG is fully optimized for deployment on **Vercel**.
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/your-username/CodeHiveNG.git
+git clone https://github.com/Nischaya008/CodeHiveNG
 ```
 
 ### 2️⃣ Install dependencies
