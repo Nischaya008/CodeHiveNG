@@ -77,20 +77,51 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        const currentPosition = editorRef.current?.getPosition();
-        const currentSelections = editorRef.current?.getSelections();
-        
-        setCode(data.code);
-        
-        // Restore cursor position and selections after code update
-        if (isEditorReady && editorRef.current) {
+        const editor = editorRef.current;
+        if (editor && isEditorReady) {
+          // Store current editor state
+          const currentPosition = editor.getPosition();
+          const currentScrollPosition = editor.getScrollPosition();
+          const currentSelections = editor.getSelections();
+          const currentViewState = editor.saveViewState();
+
+          // Calculate cursor offset before update
+          const prevLineCount = editor.getModel().getLineCount();
+          const prevValue = editor.getValue();
+
+          // Update code
+          setCode(data.code);
+
+          // Use setTimeout to ensure the code update has been applied
           setTimeout(() => {
+            // Restore editor state
+            if (currentViewState) {
+              editor.restoreViewState(currentViewState);
+            }
+
+            // Adjust cursor position if needed
             if (currentPosition) {
-              editorRef.current.setPosition(currentPosition);
+              const newLineCount = editor.getModel().getLineCount();
+              const lineDiff = newLineCount - prevLineCount;
+              
+              // Only adjust position if we're below changed content
+              if (currentPosition.lineNumber > data.changeLineNumber) {
+                currentPosition.lineNumber += lineDiff;
+              }
+              
+              editor.setPosition(currentPosition);
             }
+
+            // Restore selections and scroll position
             if (currentSelections) {
-              editorRef.current.setSelections(currentSelections);
+              editor.setSelections(currentSelections);
             }
+            if (currentScrollPosition) {
+              editor.setScrollPosition(currentScrollPosition);
+            }
+
+            // Force editor to focus to maintain cursor visibility
+            editor.focus();
           }, 0);
         }
       }
@@ -126,13 +157,14 @@ const CodeEditor = () => {
     });
 
     return () => {
+      channel.unbind('code-update');
       channel.unbind_all();
       channel.unsubscribe();
     };
   }, [channel, currentUser.user.id, isEditorReady]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode) => {
+  const broadcastCodeUpdate = debounce(async (newCode, changeEvent) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -143,7 +175,8 @@ const CodeEditor = () => {
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
         userId: userData.user.id,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        changeLineNumber: changeEvent?.changes[0]?.range?.startLineNumber || 0
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -157,7 +190,7 @@ const CodeEditor = () => {
     } catch (error) {
       console.error('Error broadcasting code:', error);
     }
-  }, 100);
+  }, 50);
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -227,9 +260,9 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorChange = async (value) => {
+  const handleEditorChange = (value, event) => {
     setCode(value);
-    broadcastCodeUpdate(value);
+    broadcastCodeUpdate(value, event);
   };
 
   const handleLanguageChange = (event) => {
@@ -370,14 +403,19 @@ const CodeEditor = () => {
                 enabled: true,
                 independentColorPoolPerBracketType: true,
               },
-              // Add these new options
               multiCursorModifier: 'ctrlCmd',
               hideCursorInOverviewRuler: true,
               overviewRulerBorder: false,
-              // Disable cursor style sync
               cursorSmoothCaretAnimation: false,
-              // Preserve view state
-              preserveViewState: true
+              preserveViewState: true,
+              smoothScrolling: true,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                useShadows: false,
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10
+              }
             }}
           />
         </Box>
