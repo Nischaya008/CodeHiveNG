@@ -47,6 +47,8 @@ const CodeEditor = () => {
     message: '',
     severity: 'info'
   });
+  const editorRef = useRef(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -75,8 +77,22 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
+        const currentPosition = editorRef.current?.getPosition();
+        const currentSelections = editorRef.current?.getSelections();
+        
         setCode(data.code);
-        setLastUpdateBy(data.userId);
+        
+        // Restore cursor position and selections after code update
+        if (isEditorReady && editorRef.current) {
+          setTimeout(() => {
+            if (currentPosition) {
+              editorRef.current.setPosition(currentPosition);
+            }
+            if (currentSelections) {
+              editorRef.current.setSelections(currentSelections);
+            }
+          }, 0);
+        }
       }
     });
 
@@ -113,7 +129,7 @@ const CodeEditor = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id]);
+  }, [channel, currentUser.user.id, isEditorReady]);
 
   // Debounce the code update to prevent too many API calls
   const broadcastCodeUpdate = debounce(async (newCode) => {
@@ -127,7 +143,6 @@ const CodeEditor = () => {
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
         userId: userData.user.id,
-        // Add timestamp to ensure proper ordering of updates
         timestamp: Date.now()
       }, {
         headers: {
@@ -142,7 +157,7 @@ const CodeEditor = () => {
     } catch (error) {
       console.error('Error broadcasting code:', error);
     }
-  }, 200);
+  }, 100);
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -308,6 +323,12 @@ const CodeEditor = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
+  // Add this function to handle editor mounting
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+    setIsEditorReady(true);
+  };
+
   return (
     <Box className="code-editor-container">
       <EditorHeader 
@@ -328,6 +349,7 @@ const CodeEditor = () => {
             language={language}
             value={code}
             onChange={handleEditorChange}
+            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
@@ -347,7 +369,15 @@ const CodeEditor = () => {
               bracketPairColorization: {
                 enabled: true,
                 independentColorPoolPerBracketType: true,
-              }
+              },
+              // Add these new options
+              multiCursorModifier: 'ctrlCmd',
+              hideCursorInOverviewRuler: true,
+              overviewRulerBorder: false,
+              // Disable cursor style sync
+              cursorSmoothCaretAnimation: false,
+              // Preserve view state
+              preserveViewState: true
             }}
           />
         </Box>
