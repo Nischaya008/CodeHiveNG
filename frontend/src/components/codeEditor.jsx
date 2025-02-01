@@ -81,20 +81,17 @@ const CodeEditor = () => {
         if (editor && isEditorReady) {
           // Store current editor state
           const currentPosition = editor.getPosition();
-          const currentScrollPosition = editor.getScrollPosition();
-          const currentSelections = editor.getSelections();
           const currentViewState = editor.saveViewState();
+          const currentSelections = editor.getSelections();
 
           // Calculate cursor offset before update
           const prevLineCount = editor.getModel().getLineCount();
-          const prevValue = editor.getValue();
 
           // Update code
           setCode(data.code);
 
           // Use setTimeout to ensure the code update has been applied
           setTimeout(() => {
-            // Restore editor state
             if (currentViewState) {
               editor.restoreViewState(currentViewState);
             }
@@ -104,23 +101,22 @@ const CodeEditor = () => {
               const newLineCount = editor.getModel().getLineCount();
               const lineDiff = newLineCount - prevLineCount;
               
-              // Only adjust position if we're below changed content
               if (currentPosition.lineNumber > data.changeLineNumber) {
-                currentPosition.lineNumber += lineDiff;
+                editor.setPosition({
+                  lineNumber: currentPosition.lineNumber + lineDiff,
+                  column: currentPosition.column
+                });
+              } else {
+                editor.setPosition(currentPosition);
               }
-              
-              editor.setPosition(currentPosition);
             }
 
-            // Restore selections and scroll position
+            // Restore selections
             if (currentSelections) {
               editor.setSelections(currentSelections);
             }
-            if (currentScrollPosition) {
-              editor.setScrollPosition(currentScrollPosition);
-            }
 
-            // Force editor to focus to maintain cursor visibility
+            // Force editor to focus
             editor.focus();
           }, 0);
         }
