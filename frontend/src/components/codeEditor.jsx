@@ -77,49 +77,8 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        const editor = editorRef.current;
-        if (editor && isEditorReady) {
-          // Store current editor state
-          const currentPosition = editor.getPosition();
-          const currentViewState = editor.saveViewState();
-          const currentSelections = editor.getSelections();
-
-          // Calculate cursor offset before update
-          const prevLineCount = editor.getModel().getLineCount();
-
-          // Update code
-          setCode(data.code);
-
-          // Use setTimeout to ensure the code update has been applied
-          setTimeout(() => {
-            if (currentViewState) {
-              editor.restoreViewState(currentViewState);
-            }
-
-            // Adjust cursor position if needed
-            if (currentPosition) {
-              const newLineCount = editor.getModel().getLineCount();
-              const lineDiff = newLineCount - prevLineCount;
-              
-              if (currentPosition.lineNumber > data.changeLineNumber) {
-                editor.setPosition({
-                  lineNumber: currentPosition.lineNumber + lineDiff,
-                  column: currentPosition.column
-                });
-              } else {
-                editor.setPosition(currentPosition);
-              }
-            }
-
-            // Restore selections
-            if (currentSelections) {
-              editor.setSelections(currentSelections);
-            }
-
-            // Force editor to focus
-            editor.focus();
-          }, 0);
-        }
+        // Only update the code content without affecting the editor state
+        setCode(data.code);
       }
     });
 
@@ -157,10 +116,10 @@ const CodeEditor = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id, isEditorReady]);
+  }, [channel, currentUser.user.id]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode, changeEvent) => {
+  const broadcastCodeUpdate = debounce(async (newCode) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -171,8 +130,7 @@ const CodeEditor = () => {
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
         userId: userData.user.id,
-        timestamp: Date.now(),
-        changeLineNumber: changeEvent?.changes[0]?.range?.startLineNumber || 0
+        timestamp: Date.now()
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -258,7 +216,7 @@ const CodeEditor = () => {
 
   const handleEditorChange = (value, event) => {
     setCode(value);
-    broadcastCodeUpdate(value, event);
+    broadcastCodeUpdate(value);
   };
 
   const handleLanguageChange = (event) => {
@@ -393,25 +351,8 @@ const CodeEditor = () => {
               readOnly: false,
               cursorStyle: 'line',
               cursorBlinking: 'blink',
-              renderOverviewRuler: false,
-              occurrencesHighlight: false,
-              bracketPairColorization: {
-                enabled: true,
-                independentColorPoolPerBracketType: true,
-              },
-              multiCursorModifier: 'ctrlCmd',
-              hideCursorInOverviewRuler: true,
-              overviewRulerBorder: false,
               cursorSmoothCaretAnimation: false,
-              preserveViewState: true,
-              smoothScrolling: true,
-              scrollbar: {
-                vertical: 'visible',
-                horizontal: 'visible',
-                useShadows: false,
-                verticalScrollbarSize: 10,
-                horizontalScrollbarSize: 10
-              }
+              preserveViewState: true
             }}
           />
         </Box>
