@@ -256,6 +256,13 @@ const LandingPage = () => {
                         label="Room Name"
                         value={newRoom.name}
                         onChange={(e) => setNewRoom({ name: e.target.value })}
+                        autoComplete="off"
+                        inputProps={{
+                          autoComplete: 'new-password',
+                          form: {
+                            autoComplete: 'off',
+                          },
+                        }}
                       />
                       <Button type="submit" className="dialog-button">
                         Create Room
@@ -277,6 +284,13 @@ const LandingPage = () => {
                         label="Room ID"
                         value={joinRoomId}
                         onChange={(e) => setJoinRoomId(e.target.value)}
+                        autoComplete="off"
+                        inputProps={{
+                          autoComplete: 'new-password',
+                          form: {
+                            autoComplete: 'off',
+                          },
+                        }}
                       />
                       <Button type="submit" className="dialog-button">
                         Join Room
