@@ -198,7 +198,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 ## 📞 Contact
 For any inquiries or feedback, reach out via:
 - 📧 Email: nischayagarg008@gmail.com
-- 🐦 Twitter: [@yourhandle](https://x.com/Nischaya008)
-- 💼 LinkedIn: [Your Profile](https://www.linkedin.com/in/nischaya008/)
+- 🐦 Twitter: [@Nischaya008](https://x.com/Nischaya008)
+- 💼 LinkedIn: [Nischaya Garg](https://www.linkedin.com/in/nischaya008/)
 
 Stay Innovated, Keep Coding, Think BIG! 🚀
