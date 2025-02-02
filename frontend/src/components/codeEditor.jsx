@@ -47,8 +47,6 @@ const CodeEditor = () => {
     message: '',
     severity: 'info'
   });
-  const [editorInstance, setEditorInstance] = useState(null);
-  const [cursorPosition, setCursorPosition] = useState(null);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -77,20 +75,7 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        // Store current cursor position
-        const currentPosition = editorInstance?.getPosition();
-        
-        // Update code
         setCode(data.code);
-        
-        // Restore cursor position after a brief delay
-        if (currentPosition && editorInstance) {
-          setTimeout(() => {
-            editorInstance.setPosition(currentPosition);
-            editorInstance.revealPositionInCenter(currentPosition);
-          }, 0);
-        }
-        
         setLastUpdateBy(data.userId);
       }
     });
@@ -128,7 +113,7 @@ const CodeEditor = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id, editorInstance]);
+  }, [channel, currentUser.user.id]);
 
   // Debounce the code update to prevent too many API calls
   const broadcastCodeUpdate = debounce(async (newCode) => {
@@ -139,13 +124,15 @@ const CodeEditor = () => {
         return;
       }
 
-      // Get current editor state
-      const viewState = editorInstance?.saveViewState();
-      
+      console.log('Broadcasting code update...', {
+        roomId,
+        codeLength: newCode.length,
+        token: userData.token ? 'Present' : 'Missing'
+      });
+
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id,
-        viewState: viewState
+        userId: userData.user.id
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -157,8 +144,14 @@ const CodeEditor = () => {
         console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
+      
+      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', error);
+      console.error('Error broadcasting code:', {
+        message: error.response?.data?.message || error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
     }
   }, 200);
 
@@ -326,37 +319,6 @@ const CodeEditor = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
-  const handleEditorDidMount = (editor, monaco) => {
-    setEditorInstance(editor);
-    
-    // Listen to cursor position changes
-    editor.onDidChangeCursorPosition(e => {
-      setCursorPosition({
-        lineNumber: e.position.lineNumber,
-        column: e.position.column
-      });
-    });
-  };
-
-  const restoreCursorPosition = (editor, position) => {
-    if (!editor || !position) return;
-    
-    const model = editor.getModel();
-    if (!model) return;
-
-    // Ensure the position is within valid bounds
-    const lineCount = model.getLineCount();
-    const lineLength = model.getLineLength(position.lineNumber);
-    
-    const validPosition = {
-      lineNumber: Math.min(position.lineNumber, lineCount),
-      column: Math.min(position.column, lineLength + 1)
-    };
-
-    editor.setPosition(validPosition);
-    editor.revealPositionInCenter(validPosition);
-  };
-
   return (
     <Box className="code-editor-container">
       <EditorHeader 
@@ -377,7 +339,6 @@ const CodeEditor = () => {
             language={language}
             value={code}
             onChange={handleEditorChange}
-            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
@@ -386,9 +347,7 @@ const CodeEditor = () => {
               automaticLayout: true,
               formatOnType: true,
               formatOnPaste: true,
-              autoIndent: 'full',
-              preserveViewState: true,
-              restoreViewState: true
+              autoIndent: 'full'
             }}
           />
         </Box>
