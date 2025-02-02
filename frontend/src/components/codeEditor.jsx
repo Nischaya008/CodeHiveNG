@@ -48,7 +48,6 @@ const CodeEditor = () => {
     severity: 'info'
   });
   const editorRef = useRef(null);
-  const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -77,27 +76,24 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        setIsRemoteUpdate(true);
-        // Get current cursor position
         const editor = editorRef.current;
-        if (editor) {
-          const position = editor.getPosition();
-          const selections = editor.getSelections();
-          
-          // Update the code without triggering cursor movement
-          editor.executeEdits('remote-update', [{
-            range: editor.getModel().getFullModelRange(),
-            text: data.code,
-            forceMoveMarkers: false
-          }]);
-          
-          // Restore cursor position after update
-          requestAnimationFrame(() => {
-            editor.setPosition(position);
-            editor.setSelections(selections);
-            setIsRemoteUpdate(false);
-          });
+        if (!editor) return;
+        
+        const model = editor.getModel();
+        const currentSelection = editor.getSelection();
+        
+        // Apply the edit without affecting the cursor
+        editor.executeEdits('remote-update', [{
+          range: model.getFullModelRange(),
+          text: data.code,
+        }]);
+        
+        // Restore selection
+        if (currentSelection) {
+          editor.setSelection(currentSelection);
         }
+        
+        setLastUpdateBy(data.userId);
       }
     });
 
@@ -244,32 +240,21 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorChange = async (value, event) => {
-    if (event.isFlush || isRemoteUpdate) return;
-    
-    // Get current cursor position and selection
-    const editor = editorRef.current;
-    const position = editor.getPosition();
-    const selections = editor.getSelections();
-    
-    // Update the code
+  const handleEditorChange = async (value) => {
     setCode(value);
-    
-    // Restore cursor position after state update
-    requestAnimationFrame(() => {
-      editor.setPosition(position);
-      editor.setSelections(selections);
-      editor.focus();
-    });
-    
-    // Broadcast code update
     broadcastCodeUpdate(value);
   };
 
   const handleLanguageChange = (event) => {
     const newLanguage = event.target.value;
     setLanguage(newLanguage);
-    setCode(BOILERPLATE_CODE[newLanguage]);
+    
+    const editor = editorRef.current;
+    if (editor) {
+      const model = editor.getModel();
+      model.setValue(BOILERPLATE_CODE[newLanguage]);
+    }
+    
     broadcastLanguageUpdate(newLanguage);
   };
 
@@ -357,10 +342,6 @@ const CodeEditor = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
-  const handleEditorDidMount = (editor, monaco) => {
-    editorRef.current = editor;
-  };
-
   return (
     <Box className="code-editor-container">
       <EditorHeader 
@@ -379,7 +360,10 @@ const CodeEditor = () => {
             height="100%"
             defaultLanguage={language}
             language={language}
-            value={code}
+            defaultValue={code}
+            onMount={(editor) => {
+              editorRef.current = editor;
+            }}
             onChange={handleEditorChange}
             theme="vs-dark"
             options={{
@@ -389,14 +373,8 @@ const CodeEditor = () => {
               automaticLayout: true,
               formatOnType: true,
               formatOnPaste: true,
-              autoIndent: 'full',
-              cursorStyle: 'line',
-              cursorBlinking: 'solid',
-              cursorSmoothCaretAnimation: true,
-              cursorSurroundingLines: 3,
-              cursorWidth: 2
+              autoIndent: 'full'
             }}
-            onMount={handleEditorDidMount}
           />
         </Box>
         
