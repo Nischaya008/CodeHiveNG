@@ -48,6 +48,7 @@ const CodeEditor = () => {
     severity: 'info'
   });
   const editorRef = useRef(null);
+  const [isRemoteUpdate, setIsRemoteUpdate] = useState(false);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -76,20 +77,26 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
+        setIsRemoteUpdate(true);
         // Get current cursor position
         const editor = editorRef.current;
         if (editor) {
           const position = editor.getPosition();
           const selections = editor.getSelections();
           
-          // Update the code
-          setCode(data.code);
+          // Update the code without triggering cursor movement
+          editor.executeEdits('remote-update', [{
+            range: editor.getModel().getFullModelRange(),
+            text: data.code,
+            forceMoveMarkers: false
+          }]);
           
           // Restore cursor position after update
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             editor.setPosition(position);
             editor.setSelections(selections);
-          }, 0);
+            setIsRemoteUpdate(false);
+          });
         }
       }
     });
@@ -238,10 +245,9 @@ const CodeEditor = () => {
   }, 200);
 
   const handleEditorChange = async (value, event) => {
-    // Only update code if the change is from the current user
-    if (event.isFlush) return;
+    if (event.isFlush || isRemoteUpdate) return;
     
-    // Get current cursor position
+    // Get current cursor position and selection
     const editor = editorRef.current;
     const position = editor.getPosition();
     const selections = editor.getSelections();
@@ -250,10 +256,11 @@ const CodeEditor = () => {
     setCode(value);
     
     // Restore cursor position after state update
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       editor.setPosition(position);
       editor.setSelections(selections);
-    }, 0);
+      editor.focus();
+    });
     
     // Broadcast code update
     broadcastCodeUpdate(value);
