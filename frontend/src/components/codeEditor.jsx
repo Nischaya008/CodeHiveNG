@@ -47,7 +47,8 @@ const CodeEditor = () => {
     message: '',
     severity: 'info'
   });
-  const editorRef = useRef(null);
+  const [editorInstance, setEditorInstance] = useState(null);
+  const [cursorPosition, setCursorPosition] = useState(null);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -76,35 +77,23 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        const editor = editorRef.current;
-        if (!editor) return;
+        // Save current cursor position before updating code
+        if (editorInstance) {
+          const position = editorInstance.getPosition();
+          setCursorPosition({
+            lineNumber: position.lineNumber,
+            column: position.column
+          });
+        }
         
-        const model = editor.getModel();
-        if (!model) return;
-
-        // Save current viewport and selections
-        const viewState = editor.saveViewState();
-        const selections = editor.getSelections();
+        setCode(data.code);
         
-        // Calculate the minimal edits required
-        const oldValue = model.getValue();
-        if (oldValue !== data.code) {
-          model.pushEditOperations(
-            selections,
-            [{
-              range: model.getFullModelRange(),
-              text: data.code
-            }],
-            () => null
-          );
-          
-          // Restore viewport and selections
-          if (viewState) {
-            editor.restoreViewState(viewState);
-          }
-          if (selections) {
-            editor.setSelections(selections);
-          }
+        // Restore cursor position after code update
+        if (editorInstance && cursorPosition) {
+          setTimeout(() => {
+            editorInstance.setPosition(cursorPosition);
+            editorInstance.focus();
+          }, 0);
         }
         
         setLastUpdateBy(data.userId);
@@ -144,7 +133,7 @@ const CodeEditor = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id]);
+  }, [channel, currentUser.user.id, editorInstance, cursorPosition]);
 
   // Debounce the code update to prevent too many API calls
   const broadcastCodeUpdate = debounce(async (newCode) => {
@@ -155,13 +144,15 @@ const CodeEditor = () => {
         return;
       }
 
-      const editor = editorRef.current;
-      if (!editor) return;
+      console.log('Broadcasting code update...', {
+        roomId,
+        codeLength: newCode.length,
+        token: userData.token ? 'Present' : 'Missing'
+      });
 
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id,
-        timestamp: Date.now()
+        userId: userData.user.id
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -170,12 +161,19 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
+        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
+      
+      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', error);
+      console.error('Error broadcasting code:', {
+        message: error.response?.data?.message || error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
     }
-  }, 100); // Reduced debounce time for better responsiveness
+  }, 200);
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -245,24 +243,44 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorChange = (value) => {
-    // Only update local state if needed
-    if (value !== code) {
-      setCode(value);
-      broadcastCodeUpdate(value);
+  const handleEditorDidMount = (editor) => {
+    setEditorInstance(editor);
+    
+    // Save cursor position before code updates
+    editor.onDidChangeCursorPosition(e => {
+      setCursorPosition({
+        lineNumber: e.position.lineNumber,
+        column: e.position.column
+      });
+    });
+  };
+
+  const handleEditorChange = async (value) => {
+    // Save current cursor position
+    if (editorInstance) {
+      const position = editorInstance.getPosition();
+      setCursorPosition({
+        lineNumber: position.lineNumber,
+        column: position.column
+      });
+    }
+    
+    setCode(value);
+    broadcastCodeUpdate(value);
+    
+    // Restore cursor position after code update
+    if (editorInstance && cursorPosition) {
+      setTimeout(() => {
+        editorInstance.setPosition(cursorPosition);
+        editorInstance.focus();
+      }, 0);
     }
   };
 
   const handleLanguageChange = (event) => {
     const newLanguage = event.target.value;
     setLanguage(newLanguage);
-    
-    const editor = editorRef.current;
-    if (editor) {
-      const model = editor.getModel();
-      model.setValue(BOILERPLATE_CODE[newLanguage]);
-    }
-    
+    setCode(BOILERPLATE_CODE[newLanguage]);
     broadcastLanguageUpdate(newLanguage);
   };
 
@@ -368,14 +386,9 @@ const CodeEditor = () => {
             height="100%"
             defaultLanguage={language}
             language={language}
-            defaultValue={code}
-            onMount={(editor) => {
-              editorRef.current = editor;
-              // Store initial value in the model
-              const model = editor.getModel();
-              model.setValue(code);
-            }}
+            value={code}
             onChange={handleEditorChange}
+            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
