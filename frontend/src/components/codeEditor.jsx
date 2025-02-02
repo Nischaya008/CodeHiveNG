@@ -77,8 +77,35 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        // Only update the code content without affecting the editor state
-        setCode(data.code);
+        const editor = editorRef.current;
+        if (editor && isEditorReady) {
+          // Store current state
+          const currentPosition = editor.getPosition();
+          const currentSelections = editor.getSelections();
+          const currentViewState = editor.saveViewState();
+          const model = editor.getModel();
+          
+          // Apply the code update
+          model.pushEditOperations(
+            [],
+            [{
+              range: model.getFullModelRange(),
+              text: data.code
+            }],
+            () => null
+          );
+
+          // Restore editor state
+          if (currentViewState) {
+            editor.restoreViewState(currentViewState);
+          }
+          if (currentPosition) {
+            editor.setPosition(currentPosition);
+          }
+          if (currentSelections) {
+            editor.setSelections(currentSelections);
+          }
+        }
       }
     });
 
@@ -116,10 +143,10 @@ const CodeEditor = () => {
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id]);
+  }, [channel, currentUser.user.id, isEditorReady]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode) => {
+  const broadcastCodeUpdate = debounce(async (newCode, event) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -144,7 +171,7 @@ const CodeEditor = () => {
     } catch (error) {
       console.error('Error broadcasting code:', error);
     }
-  }, 50);
+  }, 100);
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -216,7 +243,7 @@ const CodeEditor = () => {
 
   const handleEditorChange = (value, event) => {
     setCode(value);
-    broadcastCodeUpdate(value);
+    broadcastCodeUpdate(value, event);
   };
 
   const handleLanguageChange = (event) => {
@@ -352,7 +379,22 @@ const CodeEditor = () => {
               cursorStyle: 'line',
               cursorBlinking: 'blink',
               cursorSmoothCaretAnimation: false,
-              preserveViewState: true
+              preserveViewState: true,
+              multiCursorModifier: 'alt',
+              renderFinalNewline: false,
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                useShadows: false,
+                verticalScrollbarSize: 10,
+                horizontalScrollbarSize: 10
+              },
+              lightbulb: { enabled: false },
+              quickSuggestions: false,
+              parameterHints: { enabled: false },
+              suggestOnTriggerCharacters: false,
+              acceptSuggestionOnEnter: 'off',
+              tabCompletion: 'off'
             }}
           />
         </Box>
