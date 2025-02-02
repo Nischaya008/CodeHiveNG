@@ -310,3 +310,19 @@ html, body {
     transform: scale(0.95);
   }
 }
+
+.remote-cursor {
+  background-color: rgba(0, 255, 149, 0.3);
+  width: 2px !important;
+  margin-left: -1px;
+}
+
+.remote-cursor::after {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -1px;
+  width: 4px;
+  height: 14px;
+  background-color: rgba(0, 255, 149, 0.6);
+}
