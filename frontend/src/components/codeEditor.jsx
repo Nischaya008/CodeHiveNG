@@ -86,12 +86,14 @@ const CodeEditor = () => {
         // Store current cursor and selection state
         const currentPosition = editor.getPosition();
         const currentSelections = editor.getSelections();
-        const currentScrollPosition = editor.getScrollPosition();
 
-        // Get the current model and create an edit operation
+        // Get the current model
         const model = editor.getModel();
-        if (model) {
-          // Create a single edit operation to replace the entire content
+        if (!model) return;
+
+        // Update the content
+        const prevValue = model.getValue();
+        if (prevValue !== data.code) {
           model.pushEditOperations(
             [],
             [{
@@ -113,7 +115,6 @@ const CodeEditor = () => {
             if (currentSelections) {
               editor.setSelections(currentSelections);
             }
-            editor.setScrollPosition(currentScrollPosition);
           });
         }
       }
@@ -321,38 +322,10 @@ const CodeEditor = () => {
 
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
-    
-    // Store initial cursor position
-    const initialPosition = editor.getPosition();
-    if (initialPosition) {
-      broadcastCursorPosition({
-        lineNumber: initialPosition.lineNumber,
-        column: initialPosition.column
-      });
-    }
-
-    // Debounced cursor position handler
-    const debouncedCursorHandler = debounce((e) => {
-      const position = editor.getPosition();
-      if (position) {
-        broadcastCursorPosition({
-          lineNumber: position.lineNumber,
-          column: position.column
-        });
-      }
-    }, 50);
-
-    // Add cursor position listener
-    editor.onDidChangeCursorPosition(debouncedCursorHandler);
   };
 
   const handleEditorChange = (value, event) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    // Only broadcast if the change was made by the user (not by setValue)
-    if (event && (event.isFlush || event.isUndoing || event.isRedoing)) return;
-
+    if (!event) return; // Ignore programmatic changes
     setCode(value);
     broadcastCodeUpdate(value);
   };
@@ -474,9 +447,9 @@ const CodeEditor = () => {
               fontSize: 14,
               scrollBeyondLastLine: false,
               automaticLayout: true,
-              formatOnType: true,
-              formatOnPaste: true,
-              autoIndent: 'full',
+              formatOnType: false,
+              formatOnPaste: false,
+              autoIndent: 'keep',
               cursorBlinking: 'smooth',
               cursorSmoothCaretAnimation: true,
               multiCursorModifier: 'alt',
