@@ -241,7 +241,21 @@ const CodeEditor = () => {
     // Only update code if the change is from the current user
     if (event.isFlush) return;
     
+    // Get current cursor position
+    const editor = editorRef.current;
+    const position = editor.getPosition();
+    const selections = editor.getSelections();
+    
+    // Update the code
     setCode(value);
+    
+    // Restore cursor position after state update
+    setTimeout(() => {
+      editor.setPosition(position);
+      editor.setSelections(selections);
+    }, 0);
+    
+    // Broadcast code update
     broadcastCodeUpdate(value);
   };
 
