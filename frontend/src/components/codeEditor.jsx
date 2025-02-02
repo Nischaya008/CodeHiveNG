@@ -270,16 +270,35 @@ const CodeEditor = () => {
   const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
     
-    editor.onDidChangeCursorPosition(e => {
-      const position = editor.getPosition();
+    // Store initial cursor position
+    const initialPosition = editor.getPosition();
+    if (initialPosition) {
       broadcastCursorPosition({
-        lineNumber: position.lineNumber,
-        column: position.column
+        lineNumber: initialPosition.lineNumber,
+        column: initialPosition.column
       });
-    });
+    }
 
-    // Add remote cursor decorations
-    editor.onDidChangeModelContent(() => {
+    // Debounced cursor position handler
+    const debouncedCursorHandler = debounce((e) => {
+      const position = editor.getPosition();
+      if (position) {
+        broadcastCursorPosition({
+          lineNumber: position.lineNumber,
+          column: position.column
+        });
+      }
+    }, 50);
+
+    // Add cursor position listener
+    editor.onDidChangeCursorPosition(debouncedCursorHandler);
+
+    // Add remote cursor decorations with optimized rendering
+    const decorationsRef = { current: [] };
+    
+    const updateDecorations = debounce(() => {
+      if (!editor.getModel()) return;
+
       const decorations = Object.entries(remoteCursors).map(([userId, data]) => ({
         range: new monaco.Range(
           data.position.lineNumber,
@@ -288,27 +307,47 @@ const CodeEditor = () => {
           data.position.column
         ),
         options: {
-          className: 'remote-cursor',
+          className: `remote-cursor cursor-${userId}`,
           hoverMessage: { value: data.username },
           zIndex: 100
         }
       }));
 
-      editor.deltaDecorations([], decorations);
-    });
+      decorationsRef.current = editor.deltaDecorations(
+        decorationsRef.current,
+        decorations
+      );
+    }, 30);
+
+    // Update decorations when content changes
+    editor.onDidChangeModelContent(updateDecorations);
+    
+    // Update decorations when remote cursors change
+    useEffect(() => {
+      updateDecorations();
+    }, [remoteCursors]);
   };
 
-  const handleEditorChange = async (value) => {
-    // Store current cursor position and selections
-    const selections = editorRef.current?.getSelections() || [];
+  const handleEditorChange = (value) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Store current cursor state
+    const position = editor.getPosition();
+    const selections = editor.getSelections();
     
     setCode(value);
     broadcastCodeUpdate(value);
 
-    // Restore cursor positions and selections after state update
-    if (editorRef.current && selections.length > 0) {
-      editorRef.current.setSelections(selections);
-    }
+    // Restore cursor state after a short delay
+    setTimeout(() => {
+      if (position) {
+        editor.setPosition(position);
+      }
+      if (selections) {
+        editor.setSelections(selections);
+      }
+    }, 0);
   };
 
   const handleLanguageChange = (event) => {
