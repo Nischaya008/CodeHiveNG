@@ -48,7 +48,6 @@ const CodeEditor = () => {
     severity: 'info'
   });
   const editorRef = useRef(null);
-  const [isEditorReady, setIsEditorReady] = useState(false);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -77,34 +76,20 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
+        // Get current cursor position
         const editor = editorRef.current;
-        if (editor && isEditorReady) {
-          // Store current state
-          const currentPosition = editor.getPosition();
-          const currentSelections = editor.getSelections();
-          const currentViewState = editor.saveViewState();
-          const model = editor.getModel();
+        if (editor) {
+          const position = editor.getPosition();
+          const selections = editor.getSelections();
           
-          // Apply the code update
-          model.pushEditOperations(
-            [],
-            [{
-              range: model.getFullModelRange(),
-              text: data.code
-            }],
-            () => null
-          );
-
-          // Restore editor state
-          if (currentViewState) {
-            editor.restoreViewState(currentViewState);
-          }
-          if (currentPosition) {
-            editor.setPosition(currentPosition);
-          }
-          if (currentSelections) {
-            editor.setSelections(currentSelections);
-          }
+          // Update the code
+          setCode(data.code);
+          
+          // Restore cursor position after update
+          setTimeout(() => {
+            editor.setPosition(position);
+            editor.setSelections(selections);
+          }, 0);
         }
       }
     });
@@ -139,14 +124,13 @@ const CodeEditor = () => {
     });
 
     return () => {
-      channel.unbind('code-update');
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [channel, currentUser.user.id, isEditorReady]);
+  }, [channel, currentUser.user.id]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode, event) => {
+  const broadcastCodeUpdate = debounce(async (newCode) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -154,10 +138,15 @@ const CodeEditor = () => {
         return;
       }
 
+      console.log('Broadcasting code update...', {
+        roomId,
+        codeLength: newCode.length,
+        token: userData.token ? 'Present' : 'Missing'
+      });
+
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id,
-        timestamp: Date.now()
+        userId: userData.user.id
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -166,12 +155,19 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
+        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
+      
+      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', error);
+      console.error('Error broadcasting code:', {
+        message: error.response?.data?.message || error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
     }
-  }, 100);
+  }, 200);
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -241,9 +237,12 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorChange = (value, event) => {
+  const handleEditorChange = async (value, event) => {
+    // Only update code if the change is from the current user
+    if (event.isFlush) return;
+    
     setCode(value);
-    broadcastCodeUpdate(value, event);
+    broadcastCodeUpdate(value);
   };
 
   const handleLanguageChange = (event) => {
@@ -337,10 +336,8 @@ const CodeEditor = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
-  // Add this function to handle editor mounting
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
-    setIsEditorReady(true);
   };
 
   return (
@@ -363,7 +360,6 @@ const CodeEditor = () => {
             language={language}
             value={code}
             onChange={handleEditorChange}
-            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
@@ -373,29 +369,13 @@ const CodeEditor = () => {
               formatOnType: true,
               formatOnPaste: true,
               autoIndent: 'full',
-              renderValidationDecorations: 'off',
-              renderWhitespace: 'none',
-              readOnly: false,
               cursorStyle: 'line',
-              cursorBlinking: 'blink',
-              cursorSmoothCaretAnimation: false,
-              preserveViewState: true,
-              multiCursorModifier: 'alt',
-              renderFinalNewline: false,
-              scrollbar: {
-                vertical: 'visible',
-                horizontal: 'visible',
-                useShadows: false,
-                verticalScrollbarSize: 10,
-                horizontalScrollbarSize: 10
-              },
-              lightbulb: { enabled: false },
-              quickSuggestions: false,
-              parameterHints: { enabled: false },
-              suggestOnTriggerCharacters: false,
-              acceptSuggestionOnEnter: 'off',
-              tabCompletion: 'off'
+              cursorBlinking: 'solid',
+              cursorSmoothCaretAnimation: true,
+              cursorSurroundingLines: 3,
+              cursorWidth: 2
             }}
+            onMount={handleEditorDidMount}
           />
         </Box>
         
@@ -490,8 +470,7 @@ const CodeEditor = () => {
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         sx={{
           zIndex: 9999,
-          marginTop: '80px',
-          marginRight: '10px'
+          marginTop: '80px' // Add space below the header
         }}
       >
         <MuiAlert
