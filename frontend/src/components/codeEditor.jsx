@@ -94,13 +94,16 @@ const CodeEditor = () => {
         // Update the content
         const prevValue = model.getValue();
         if (prevValue !== data.code) {
+          const edits = [{
+            range: model.getFullModelRange(),
+            text: data.code
+          }];
+
+          // Use pushEditOperations for atomic update
           model.pushEditOperations(
-            [],
-            [{
-              range: model.getFullModelRange(),
-              text: data.code
-            }],
-            () => null
+            currentSelections || [],
+            edits,
+            () => currentSelections
           );
 
           // Update local state
@@ -108,14 +111,12 @@ const CodeEditor = () => {
           setLastUpdateBy(data.userId);
 
           // Restore cursor and selection state
-          requestAnimationFrame(() => {
-            if (currentPosition) {
-              editor.setPosition(currentPosition);
-            }
-            if (currentSelections) {
-              editor.setSelections(currentSelections);
-            }
-          });
+          if (currentPosition) {
+            editor.setPosition(currentPosition);
+          }
+          if (currentSelections) {
+            editor.setSelections(currentSelections);
+          }
         }
       }
     });
@@ -325,9 +326,13 @@ const CodeEditor = () => {
   };
 
   const handleEditorChange = (value, event) => {
-    if (!event) return; // Ignore programmatic changes
-    setCode(value);
-    broadcastCodeUpdate(value);
+    if (!event || !editorRef.current) return;
+    
+    // Only broadcast if it's a content change event
+    if (event.changes && event.changes.length > 0) {
+      setCode(value);
+      broadcastCodeUpdate(value);
+    }
   };
 
   const handleLanguageChange = (event) => {
