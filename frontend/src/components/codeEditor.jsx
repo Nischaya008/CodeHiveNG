@@ -80,17 +80,31 @@ const CodeEditor = () => {
         if (!editor) return;
         
         const model = editor.getModel();
-        const currentSelection = editor.getSelection();
+        if (!model) return;
+
+        // Save current viewport and selections
+        const viewState = editor.saveViewState();
+        const selections = editor.getSelections();
         
-        // Apply the edit without affecting the cursor
-        editor.executeEdits('remote-update', [{
-          range: model.getFullModelRange(),
-          text: data.code,
-        }]);
-        
-        // Restore selection
-        if (currentSelection) {
-          editor.setSelection(currentSelection);
+        // Calculate the minimal edits required
+        const oldValue = model.getValue();
+        if (oldValue !== data.code) {
+          model.pushEditOperations(
+            selections,
+            [{
+              range: model.getFullModelRange(),
+              text: data.code
+            }],
+            () => null
+          );
+          
+          // Restore viewport and selections
+          if (viewState) {
+            editor.restoreViewState(viewState);
+          }
+          if (selections) {
+            editor.setSelections(selections);
+          }
         }
         
         setLastUpdateBy(data.userId);
@@ -141,15 +155,13 @@ const CodeEditor = () => {
         return;
       }
 
-      console.log('Broadcasting code update...', {
-        roomId,
-        codeLength: newCode.length,
-        token: userData.token ? 'Present' : 'Missing'
-      });
+      const editor = editorRef.current;
+      if (!editor) return;
 
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id
+        userId: userData.user.id,
+        timestamp: Date.now()
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -158,19 +170,12 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
-        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
-      
-      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', {
-        message: error.response?.data?.message || error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
+      console.error('Error broadcasting code:', error);
     }
-  }, 200);
+  }, 100); // Reduced debounce time for better responsiveness
 
   const broadcastLanguageUpdate = debounce(async (newLanguage) => {
     try {
@@ -240,9 +245,12 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorChange = async (value) => {
-    setCode(value);
-    broadcastCodeUpdate(value);
+  const handleEditorChange = (value) => {
+    // Only update local state if needed
+    if (value !== code) {
+      setCode(value);
+      broadcastCodeUpdate(value);
+    }
   };
 
   const handleLanguageChange = (event) => {
@@ -363,6 +371,9 @@ const CodeEditor = () => {
             defaultValue={code}
             onMount={(editor) => {
               editorRef.current = editor;
+              // Store initial value in the model
+              const model = editor.getModel();
+              model.setValue(code);
             }}
             onChange={handleEditorChange}
             theme="vs-dark"
