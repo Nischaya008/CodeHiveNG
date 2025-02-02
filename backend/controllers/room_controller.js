@@ -335,3 +335,25 @@ export const updateFileSelection = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const updateCursor = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { position, userId } = req.body;
+    
+    const user = await User.findById(userId).select('username');
+    
+    const channelName = `room-${roomId}`;
+    await pusher.trigger(channelName, 'cursor-update', {
+      position,
+      userId,
+      username: user.username,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error in updateCursor:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
