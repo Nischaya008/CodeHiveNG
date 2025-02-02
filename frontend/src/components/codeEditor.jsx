@@ -16,6 +16,7 @@ import { debounce } from 'lodash';
 import MuiAlert from '@mui/material/Alert';
 import Chat from './chat.jsx';
 import BrandHeader from './styles/brandheader.jsx';
+import { diffChars } from 'diff';
 
 const API_URL = process.env.NODE_ENV === 'production' 
   ? 'https://codehiveng.vercel.app'
@@ -79,16 +80,32 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        // Store current cursor position and selections
-        const selections = editorRef.current?.getSelections() || [];
-        
-        setCode(data.code);
-        setLastUpdateBy(data.userId);
+        const editor = editorRef.current;
+        if (!editor) return;
 
-        // Restore cursor positions and selections after state update
-        if (editorRef.current && selections.length > 0) {
-          editorRef.current.setSelections(selections);
-        }
+        // Store current cursor and selection state
+        const currentPosition = editor.getPosition();
+        const currentSelections = editor.getSelections();
+        const currentScrollPosition = editor.getScrollPosition();
+
+        // Calculate cursor offset
+        const prevModel = editor.getModel();
+        const prevValue = prevModel ? prevModel.getValue() : '';
+        const changes = diffChars(prevValue, data.code);
+        
+        // Update code without triggering the change handler
+        editor.getModel().setValue(data.code);
+
+        // Restore cursor and selection state with adjusted positions
+        requestAnimationFrame(() => {
+          if (currentPosition) {
+            editor.setPosition(currentPosition);
+          }
+          if (currentSelections) {
+            editor.setSelections(currentSelections);
+          }
+          editor.setScrollPosition(currentScrollPosition);
+        });
       }
     });
 
@@ -319,26 +336,15 @@ const CodeEditor = () => {
     editor.onDidChangeCursorPosition(debouncedCursorHandler);
   };
 
-  const handleEditorChange = (value) => {
+  const handleEditorChange = (value, event) => {
     const editor = editorRef.current;
     if (!editor) return;
 
-    // Store current cursor state
-    const position = editor.getPosition();
-    const selections = editor.getSelections();
-    
+    // Only broadcast if the change was made by the user (not by setValue)
+    if (event.isFlush || event.isUndoing || event.isRedoing) return;
+
     setCode(value);
     broadcastCodeUpdate(value);
-
-    // Restore cursor state after a short delay
-    requestAnimationFrame(() => {
-      if (position) {
-        editor.setPosition(position);
-      }
-      if (selections) {
-        editor.setSelections(selections);
-      }
-    });
   };
 
   const handleLanguageChange = (event) => {
@@ -362,7 +368,6 @@ const CodeEditor = () => {
       });
     }
   };
-
   const handleRunCode = async () => {
     setIsLoading(true);
     // Broadcast loading state immediately
@@ -463,7 +468,14 @@ const CodeEditor = () => {
               formatOnPaste: true,
               autoIndent: 'full',
               cursorBlinking: 'smooth',
-              cursorSmoothCaretAnimation: true
+              cursorSmoothCaretAnimation: true,
+              multiCursorModifier: 'alt',
+              renderWhitespace: 'none',
+              wordWrap: 'on',
+              contextmenu: true,
+              autoSurround: 'never',
+              autoClosingBrackets: 'never',
+              autoClosingQuotes: 'never'
             }}
           />
         </Box>
