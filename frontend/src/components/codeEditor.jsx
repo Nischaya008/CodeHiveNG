@@ -16,7 +16,6 @@ import { debounce } from 'lodash';
 import MuiAlert from '@mui/material/Alert';
 import Chat from './chat.jsx';
 import BrandHeader from './styles/brandheader.jsx';
-import { diffChars } from 'diff';
 
 const API_URL = process.env.NODE_ENV === 'production' 
   ? 'https://codehiveng.vercel.app'
@@ -48,10 +47,8 @@ const CodeEditor = () => {
     message: '',
     severity: 'info'
   });
-  const editorRef = useRef(null);
-  const [remoteCursors, setRemoteCursors] = useState({});
-  const decorationsRef = useRef([]);
-  const updateDecorationsRef = useRef(null);
+  const [editorInstance, setEditorInstance] = useState(null);
+  const cursorPositions = useRef(new Map());
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -80,44 +77,21 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        const editor = editorRef.current;
-        if (!editor) return;
+        // Store current cursor position before update
+        const currentPosition = editorInstance.getPosition();
+        cursorPositions.current.set(currentUser.user.id, currentPosition);
 
-        // Store current cursor and selection state
-        const currentPosition = editor.getPosition();
-        const currentSelections = editor.getSelections();
-
-        // Get the current model
-        const model = editor.getModel();
-        if (!model) return;
-
-        // Update the content
-        const prevValue = model.getValue();
-        if (prevValue !== data.code) {
-          const edits = [{
-            range: model.getFullModelRange(),
-            text: data.code
-          }];
-
-          // Use pushEditOperations for atomic update
-          model.pushEditOperations(
-            currentSelections || [],
-            edits,
-            () => currentSelections
-          );
-
-          // Update local state
-          setCode(data.code);
-          setLastUpdateBy(data.userId);
-
-          // Restore cursor and selection state
-          if (currentPosition) {
-            editor.setPosition(currentPosition);
+        // Update code
+        setCode(data.code);
+        
+        // Restore cursor position after a brief delay
+        setTimeout(() => {
+          if (cursorPositions.current.has(currentUser.user.id)) {
+            const savedPosition = cursorPositions.current.get(currentUser.user.id);
+            editorInstance.setPosition(savedPosition);
+            editorInstance.revealPositionInCenter(savedPosition);
           }
-          if (currentSelections) {
-            editor.setSelections(currentSelections);
-          }
-        }
+        }, 0);
       }
     });
 
@@ -150,28 +124,14 @@ const CodeEditor = () => {
       }
     });
 
-    // Add cursor position listener
-    channel.bind('cursor-update', data => {
-      if (data.userId !== currentUser.user.id) {
-        setRemoteCursors(prev => ({
-          ...prev,
-          [data.userId]: {
-            position: data.position,
-            username: data.username
-          }
-        }));
-      }
-    });
-
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
-      channel.unbind('cursor-update');
     };
-  }, [channel, currentUser.user.id]);
+  }, [channel, currentUser.user.id, editorInstance]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode) => {
+  const broadcastCodeUpdate = debounce(async (newCode, editor) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -179,15 +139,18 @@ const CodeEditor = () => {
         return;
       }
 
-      console.log('Broadcasting code update...', {
-        roomId,
-        codeLength: newCode.length,
-        token: userData.token ? 'Present' : 'Missing'
-      });
+      // Get current cursor position and selection
+      const model = editor.getModel();
+      const selection = editor.getSelection();
+      const position = {
+        lineNumber: selection.positionLineNumber,
+        column: selection.positionColumn
+      };
 
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
-        userId: userData.user.id
+        userId: userData.user.id,
+        cursorPosition: position
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -196,17 +159,10 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
-        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
-      
-      console.log('Code broadcast successful');
     } catch (error) {
-      console.error('Error broadcasting code:', {
-        message: error.response?.data?.message || error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
+      console.error('Error broadcasting code:', error);
     }
   }, 200);
 
@@ -278,61 +234,15 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  // Add this function to broadcast cursor position
-  const broadcastCursorPosition = debounce(async (position) => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user'));
-      if (!userData || !userData.token) return;
-
-      await axios.post(`${API_URL}/api/rooms/${roomId}/cursor`, {
-        position,
-        userId: userData.user.id
-      }, {
-        headers: {
-          Authorization: `Bearer ${userData.token}`
-        }
-      });
-    } catch (error) {
-      console.error('Error broadcasting cursor:', error);
-    }
-  }, 50);
-
-  // Move the updateDecorations function outside handleEditorDidMount
-  useEffect(() => {
-    if (!editorRef.current || !remoteCursors) return;
-
-    const decorations = Object.entries(remoteCursors).map(([userId, data]) => ({
-      range: new monaco.Range(
-        data.position.lineNumber,
-        data.position.column,
-        data.position.lineNumber,
-        data.position.column
-      ),
-      options: {
-        className: `remote-cursor cursor-${userId}`,
-        hoverMessage: { value: data.username },
-        zIndex: 100
-      }
-    }));
-
-    decorationsRef.current = editorRef.current.deltaDecorations(
-      decorationsRef.current,
-      decorations
-    );
-  }, [remoteCursors]);
-
   const handleEditorDidMount = (editor) => {
-    editorRef.current = editor;
+    setEditorInstance(editor);
   };
 
-  const handleEditorChange = (value, event) => {
-    if (!event || !editorRef.current) return;
+  const handleEditorChange = async (value, event) => {
+    if (!editorInstance) return;
     
-    // Only broadcast if it's a content change event
-    if (event.changes && event.changes.length > 0) {
-      setCode(value);
-      broadcastCodeUpdate(value);
-    }
+    setCode(value);
+    broadcastCodeUpdate(value, editorInstance);
   };
 
   const handleLanguageChange = (event) => {
@@ -356,6 +266,7 @@ const CodeEditor = () => {
       });
     }
   };
+
   const handleRunCode = async () => {
     setIsLoading(true);
     // Broadcast loading state immediately
@@ -452,18 +363,16 @@ const CodeEditor = () => {
               fontSize: 14,
               scrollBeyondLastLine: false,
               automaticLayout: true,
-              formatOnType: false,
-              formatOnPaste: false,
-              autoIndent: 'keep',
-              cursorBlinking: 'smooth',
-              cursorSmoothCaretAnimation: true,
+              formatOnType: true,
+              formatOnPaste: true,
+              autoIndent: 'full',
               multiCursorModifier: 'alt',
               renderWhitespace: 'none',
-              wordWrap: 'on',
               contextmenu: true,
-              autoSurround: 'never',
-              autoClosingBrackets: 'never',
-              autoClosingQuotes: 'never'
+              scrollbar: {
+                verticalScrollbarSize: 8,
+                horizontalScrollbarSize: 8
+              }
             }}
           />
         </Box>
