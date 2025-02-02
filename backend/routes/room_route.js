@@ -10,8 +10,7 @@ import {
   updateRoomCode,
   updateLanguage,
   updateTerminals,
-  updateFileSelection,
-  updateCursor
+  updateFileSelection
 } from '../controllers/room_controller.js';
 import { auth } from '../auth_backend.js';
 import { createMessage, getRoomMessages } from '../controllers/message_controller.js';
@@ -33,6 +32,5 @@ router.post('/:roomId/terminals', auth, updateTerminals);
 router.post('/:roomId/file-selection', auth, updateFileSelection);
 router.post('/:roomId/messages', auth, createMessage);
 router.get('/:roomId/messages', auth, getRoomMessages);
-router.post('/:roomId/cursor', auth, updateCursor);
 
 export default router;
