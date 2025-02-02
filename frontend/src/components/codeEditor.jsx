@@ -48,7 +48,7 @@ const CodeEditor = () => {
     severity: 'info'
   });
   const [editorInstance, setEditorInstance] = useState(null);
-  const cursorPositions = useRef(new Map());
+  const [cursorPosition, setCursorPosition] = useState(null);
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -77,21 +77,21 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        // Store current cursor position before update
-        const currentPosition = editorInstance.getPosition();
-        cursorPositions.current.set(currentUser.user.id, currentPosition);
-
+        // Store current cursor position
+        const currentPosition = editorInstance?.getPosition();
+        
         // Update code
         setCode(data.code);
         
         // Restore cursor position after a brief delay
-        setTimeout(() => {
-          if (cursorPositions.current.has(currentUser.user.id)) {
-            const savedPosition = cursorPositions.current.get(currentUser.user.id);
-            editorInstance.setPosition(savedPosition);
-            editorInstance.revealPositionInCenter(savedPosition);
-          }
-        }, 0);
+        if (currentPosition && editorInstance) {
+          setTimeout(() => {
+            editorInstance.setPosition(currentPosition);
+            editorInstance.revealPositionInCenter(currentPosition);
+          }, 0);
+        }
+        
+        setLastUpdateBy(data.userId);
       }
     });
 
@@ -131,7 +131,7 @@ const CodeEditor = () => {
   }, [channel, currentUser.user.id, editorInstance]);
 
   // Debounce the code update to prevent too many API calls
-  const broadcastCodeUpdate = debounce(async (newCode, editor) => {
+  const broadcastCodeUpdate = debounce(async (newCode) => {
     try {
       const userData = JSON.parse(localStorage.getItem('user'));
       if (!userData || !userData.token) {
@@ -139,18 +139,13 @@ const CodeEditor = () => {
         return;
       }
 
-      // Get current cursor position and selection
-      const model = editor.getModel();
-      const selection = editor.getSelection();
-      const position = {
-        lineNumber: selection.positionLineNumber,
-        column: selection.positionColumn
-      };
-
+      // Get current editor state
+      const viewState = editorInstance?.saveViewState();
+      
       const response = await axios.post(`${API_URL}/api/rooms/${roomId}/code`, {
         code: newCode,
         userId: userData.user.id,
-        cursorPosition: position
+        viewState: viewState
       }, {
         headers: {
           Authorization: `Bearer ${userData.token}`,
@@ -159,6 +154,7 @@ const CodeEditor = () => {
       });
 
       if (!response.data.success) {
+        console.error('Server responded with error:', response.data);
         throw new Error(response.data.message || 'Failed to broadcast code');
       }
     } catch (error) {
@@ -234,15 +230,9 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorDidMount = (editor) => {
-    setEditorInstance(editor);
-  };
-
-  const handleEditorChange = async (value, event) => {
-    if (!editorInstance) return;
-    
+  const handleEditorChange = async (value) => {
     setCode(value);
-    broadcastCodeUpdate(value, editorInstance);
+    broadcastCodeUpdate(value);
   };
 
   const handleLanguageChange = (event) => {
@@ -336,6 +326,37 @@ const CodeEditor = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
+  const handleEditorDidMount = (editor, monaco) => {
+    setEditorInstance(editor);
+    
+    // Listen to cursor position changes
+    editor.onDidChangeCursorPosition(e => {
+      setCursorPosition({
+        lineNumber: e.position.lineNumber,
+        column: e.position.column
+      });
+    });
+  };
+
+  const restoreCursorPosition = (editor, position) => {
+    if (!editor || !position) return;
+    
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Ensure the position is within valid bounds
+    const lineCount = model.getLineCount();
+    const lineLength = model.getLineLength(position.lineNumber);
+    
+    const validPosition = {
+      lineNumber: Math.min(position.lineNumber, lineCount),
+      column: Math.min(position.column, lineLength + 1)
+    };
+
+    editor.setPosition(validPosition);
+    editor.revealPositionInCenter(validPosition);
+  };
+
   return (
     <Box className="code-editor-container">
       <EditorHeader 
@@ -366,13 +387,8 @@ const CodeEditor = () => {
               formatOnType: true,
               formatOnPaste: true,
               autoIndent: 'full',
-              multiCursorModifier: 'alt',
-              renderWhitespace: 'none',
-              contextmenu: true,
-              scrollbar: {
-                verticalScrollbarSize: 8,
-                horizontalScrollbarSize: 8
-              }
+              preserveViewState: true,
+              restoreViewState: true
             }}
           />
         </Box>
