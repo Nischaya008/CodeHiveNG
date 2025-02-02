@@ -47,8 +47,8 @@ const CodeEditor = () => {
     message: '',
     severity: 'info'
   });
-  const [editorInstance, setEditorInstance] = useState(null);
-  const [cursorPosition, setCursorPosition] = useState(null);
+  const editorRef = useRef(null);
+  const [remoteCursors, setRemoteCursors] = useState({});
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -77,26 +77,16 @@ const CodeEditor = () => {
     // Subscribe to code updates
     channel.bind('code-update', data => {
       if (data.userId !== currentUser.user.id) {
-        // Save current cursor position before updating code
-        if (editorInstance) {
-          const position = editorInstance.getPosition();
-          setCursorPosition({
-            lineNumber: position.lineNumber,
-            column: position.column
-          });
-        }
+        // Store current cursor position and selections
+        const selections = editorRef.current?.getSelections() || [];
         
         setCode(data.code);
-        
-        // Restore cursor position after code update
-        if (editorInstance && cursorPosition) {
-          setTimeout(() => {
-            editorInstance.setPosition(cursorPosition);
-            editorInstance.focus();
-          }, 0);
-        }
-        
         setLastUpdateBy(data.userId);
+
+        // Restore cursor positions and selections after state update
+        if (editorRef.current && selections.length > 0) {
+          editorRef.current.setSelections(selections);
+        }
       }
     });
 
@@ -129,11 +119,25 @@ const CodeEditor = () => {
       }
     });
 
+    // Add cursor position listener
+    channel.bind('cursor-update', data => {
+      if (data.userId !== currentUser.user.id) {
+        setRemoteCursors(prev => ({
+          ...prev,
+          [data.userId]: {
+            position: data.position,
+            username: data.username
+          }
+        }));
+      }
+    });
+
     return () => {
       channel.unbind_all();
       channel.unsubscribe();
+      channel.unbind('cursor-update');
     };
-  }, [channel, currentUser.user.id, editorInstance, cursorPosition]);
+  }, [channel, currentUser.user.id]);
 
   // Debounce the code update to prevent too many API calls
   const broadcastCodeUpdate = debounce(async (newCode) => {
@@ -243,37 +247,67 @@ const CodeEditor = () => {
     }
   }, 200);
 
-  const handleEditorDidMount = (editor) => {
-    setEditorInstance(editor);
-    
-    // Save cursor position before code updates
-    editor.onDidChangeCursorPosition(e => {
-      setCursorPosition({
-        lineNumber: e.position.lineNumber,
-        column: e.position.column
+  // Add this function to broadcast cursor position
+  const broadcastCursorPosition = debounce(async (position) => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData || !userData.token) return;
+
+      await axios.post(`${API_URL}/api/rooms/${roomId}/cursor`, {
+        position,
+        userId: userData.user.id
+      }, {
+        headers: {
+          Authorization: `Bearer ${userData.token}`
+        }
       });
+    } catch (error) {
+      console.error('Error broadcasting cursor:', error);
+    }
+  }, 50);
+
+  // Add cursor position tracking
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+    
+    editor.onDidChangeCursorPosition(e => {
+      const position = editor.getPosition();
+      broadcastCursorPosition({
+        lineNumber: position.lineNumber,
+        column: position.column
+      });
+    });
+
+    // Add remote cursor decorations
+    editor.onDidChangeModelContent(() => {
+      const decorations = Object.entries(remoteCursors).map(([userId, data]) => ({
+        range: new monaco.Range(
+          data.position.lineNumber,
+          data.position.column,
+          data.position.lineNumber,
+          data.position.column
+        ),
+        options: {
+          className: 'remote-cursor',
+          hoverMessage: { value: data.username },
+          zIndex: 100
+        }
+      }));
+
+      editor.deltaDecorations([], decorations);
     });
   };
 
   const handleEditorChange = async (value) => {
-    // Save current cursor position
-    if (editorInstance) {
-      const position = editorInstance.getPosition();
-      setCursorPosition({
-        lineNumber: position.lineNumber,
-        column: position.column
-      });
-    }
+    // Store current cursor position and selections
+    const selections = editorRef.current?.getSelections() || [];
     
     setCode(value);
     broadcastCodeUpdate(value);
-    
-    // Restore cursor position after code update
-    if (editorInstance && cursorPosition) {
-      setTimeout(() => {
-        editorInstance.setPosition(cursorPosition);
-        editorInstance.focus();
-      }, 0);
+
+    // Restore cursor positions and selections after state update
+    if (editorRef.current && selections.length > 0) {
+      editorRef.current.setSelections(selections);
     }
   };
 
@@ -397,7 +431,9 @@ const CodeEditor = () => {
               automaticLayout: true,
               formatOnType: true,
               formatOnPaste: true,
-              autoIndent: 'full'
+              autoIndent: 'full',
+              cursorBlinking: 'smooth',
+              cursorSmoothCaretAnimation: true
             }}
           />
         </Box>
