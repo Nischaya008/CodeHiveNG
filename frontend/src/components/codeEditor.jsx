@@ -88,24 +88,34 @@ const CodeEditor = () => {
         const currentSelections = editor.getSelections();
         const currentScrollPosition = editor.getScrollPosition();
 
-        // Calculate cursor offset
-        const prevModel = editor.getModel();
-        const prevValue = prevModel ? prevModel.getValue() : '';
-        const changes = diffChars(prevValue, data.code);
-        
-        // Update code without triggering the change handler
-        editor.getModel().setValue(data.code);
+        // Get the current model and create an edit operation
+        const model = editor.getModel();
+        if (model) {
+          // Create a single edit operation to replace the entire content
+          model.pushEditOperations(
+            [],
+            [{
+              range: model.getFullModelRange(),
+              text: data.code
+            }],
+            () => null
+          );
 
-        // Restore cursor and selection state with adjusted positions
-        requestAnimationFrame(() => {
-          if (currentPosition) {
-            editor.setPosition(currentPosition);
-          }
-          if (currentSelections) {
-            editor.setSelections(currentSelections);
-          }
-          editor.setScrollPosition(currentScrollPosition);
-        });
+          // Update local state
+          setCode(data.code);
+          setLastUpdateBy(data.userId);
+
+          // Restore cursor and selection state
+          requestAnimationFrame(() => {
+            if (currentPosition) {
+              editor.setPosition(currentPosition);
+            }
+            if (currentSelections) {
+              editor.setSelections(currentSelections);
+            }
+            editor.setScrollPosition(currentScrollPosition);
+          });
+        }
       }
     });
 
@@ -341,7 +351,7 @@ const CodeEditor = () => {
     if (!editor) return;
 
     // Only broadcast if the change was made by the user (not by setValue)
-    if (event.isFlush || event.isUndoing || event.isRedoing) return;
+    if (event && (event.isFlush || event.isUndoing || event.isRedoing)) return;
 
     setCode(value);
     broadcastCodeUpdate(value);
