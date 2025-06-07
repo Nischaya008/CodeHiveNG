@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import SignIn from './signIn.jsx';
 import SignUp from './signUp.jsx';
 import Particles from './styles/particles.jsx';
+import Lanyard from './Lanyard/Lanyard';
 import './styles/landingPage.css';
 import {
   Container,
@@ -192,7 +193,27 @@ const LandingPage = () => {
   return (
     <div className="landing-container">
       <Particles />
-      <div className="content-wrapper">
+      <div style={{ 
+        position: 'fixed', 
+        right: 0, 
+        top: 0, 
+        width: '50%', 
+        height: '100vh', 
+        zIndex: 1,
+        pointerEvents: 'none'
+      }}>
+        <div style={{ 
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'auto',
+          zIndex: 1,
+          touchAction: 'none'
+        }}>
+          <Lanyard position={[0, 0, 20]} gravity={[0, -40, 0]} />
+        </div>
+      </div>
+      <div className="content-wrapper" style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto', touchAction: 'auto' }}>
         {user && (
           <AppBar position="static" sx={{ background: 'rgba(15, 15, 26, 0.8)', backdropFilter: 'blur(10px)' }}>
             <Toolbar sx={{ justifyContent: 'space-between' }}>
