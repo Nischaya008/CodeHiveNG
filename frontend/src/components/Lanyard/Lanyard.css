@@ -1,0 +1,30 @@
+.lanyard-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.lanyard-wrapper canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* Only enable pointer events on the card and its children */
+.lanyard-wrapper canvas * {
+  pointer-events: auto;
+}
+
+/* Improve touch interaction */
+@media (hover: none) {
+  .lanyard-wrapper canvas {
+    touch-action: none !important;
+  }
+}   
