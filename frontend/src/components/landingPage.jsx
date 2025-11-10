@@ -171,16 +171,13 @@ const LandingPage = () => {
 
   const SocialLinks = () => (
     <div className="social-links">
-      <a href="https://github.com/Nischaya008" target="_blank" rel="noopener noreferrer" className="social-link">
+      <a href="https://github.com/Shresze" target="_blank" rel="noopener noreferrer" className="social-link">
         <GitHubIcon /> GitHub
       </a>
-      <a href="https://www.linkedin.com/in/nischaya008/" target="_blank" rel="noopener noreferrer" className="social-link">
+      <a href="https://www.linkedin.com/in/shreshta-94833a2a6/" target="_blank" rel="noopener noreferrer" className="social-link">
         <LinkedInIcon /> LinkedIn
       </a>
-      <a href="https://x.com/Nischaya008" target="_blank" rel="noopener noreferrer" className="social-link">
-        <TwitterIcon /> Twitter
-      </a>
-      <a href="mailto:nischayagarg008@gmail.com" className="social-link">
+      <a href="mailto:shreshta0611@gmail.com" className="social-link">
         <EmailIcon /> Email
       </a>
     </div>
@@ -400,7 +397,7 @@ const LandingPage = () => {
               </ul>
             </Typography>
             <Typography paragraph>
-              I am Nischaya Garg, a Computer Science Engineering student specializing in Artificial Intelligence and Machine Learning (Hons. IBM). My expertise lies in Full-stack Web Development, with proficiency in MongoDB, Express, React, Node.js, and C++ for Data Structures and Algorithms (DSA).
+              I am Shreshta, a Computer Science Engineering student specializing in Artificial Intelligence and Machine Learning (Hons. IBM). My expertise lies in Full-stack Web Development, with proficiency in MongoDB, Express, React, Node.js, and C++ for Data Structures and Algorithms (DSA).
             </Typography>
           </div>
         </DialogContent>
