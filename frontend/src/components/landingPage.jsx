@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import SignIn from './signIn.jsx';
 import SignUp from './signUp.jsx';
 import Particles from './styles/particles.jsx';
-import Lanyard from './Lanyard/Lanyard';
 import './styles/landingPage.css';
 import {
   Container,
@@ -171,13 +170,16 @@ const LandingPage = () => {
 
   const SocialLinks = () => (
     <div className="social-links">
-      <a href="https://github.com/Shresze" target="_blank" rel="noopener noreferrer" className="social-link">
+      <a href="https://github.com/Nischaya008" target="_blank" rel="noopener noreferrer" className="social-link">
         <GitHubIcon /> GitHub
       </a>
-      <a href="https://www.linkedin.com/in/shreshta-94833a2a6/" target="_blank" rel="noopener noreferrer" className="social-link">
+      <a href="https://www.linkedin.com/in/nischaya008/" target="_blank" rel="noopener noreferrer" className="social-link">
         <LinkedInIcon /> LinkedIn
       </a>
-      <a href="mailto:shreshta0611@gmail.com" className="social-link">
+      <a href="https://x.com/Nischaya008" target="_blank" rel="noopener noreferrer" className="social-link">
+        <TwitterIcon /> Twitter
+      </a>
+      <a href="mailto:nischayagarg008@gmail.com" className="social-link">
         <EmailIcon /> Email
       </a>
     </div>
@@ -190,27 +192,7 @@ const LandingPage = () => {
   return (
     <div className="landing-container">
       <Particles />
-      <div style={{ 
-        position: 'fixed', 
-        right: 0, 
-        top: 0, 
-        width: '50%', 
-        height: '100vh', 
-        zIndex: 1,
-        pointerEvents: 'none'
-      }}>
-        <div style={{ 
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'auto',
-          zIndex: 1,
-          touchAction: 'none'
-        }}>
-          <Lanyard position={[0, 0, 20]} gravity={[0, -40, 0]} />
-        </div>
-      </div>
-      <div className="content-wrapper" style={{ position: 'relative', zIndex: 2, pointerEvents: 'auto', touchAction: 'auto' }}>
+      <div className="content-wrapper">
         {user && (
           <AppBar position="static" sx={{ background: 'rgba(15, 15, 26, 0.8)', backdropFilter: 'blur(10px)' }}>
             <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -397,7 +379,7 @@ const LandingPage = () => {
               </ul>
             </Typography>
             <Typography paragraph>
-              I am Shreshta, a Computer Science Engineering student specializing in Artificial Intelligence and Machine Learning (Hons. IBM). My expertise lies in Full-stack Web Development, with proficiency in MongoDB, Express, React, Node.js, and C++ for Data Structures and Algorithms (DSA).
+              I am Nischaya Garg, a Computer Science Engineering student specializing in Artificial Intelligence and Machine Learning (Hons. IBM). My expertise lies in Full-stack Web Development, with proficiency in MongoDB, Express, React, Node.js, and C++ for Data Structures and Algorithms (DSA).
             </Typography>
           </div>
         </DialogContent>
